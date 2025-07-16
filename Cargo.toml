@@ -2,6 +2,9 @@
 name = "swayalt"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/nytelife26/swayalt-rs"
+description = "An automatic alternating tile layout for Sway."
 
 [dependencies]
 anyhow = "1.0.98"
