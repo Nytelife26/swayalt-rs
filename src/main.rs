@@ -7,7 +7,13 @@ use std::{
 };
 
 use swayipc::{
-	Connection, Event, EventType, Fallible, Floating, Rect, WindowChange,
+	Connection,
+	Event,
+	EventType,
+	Fallible,
+	Floating,
+	Rect,
+	WindowChange,
 };
 
 #[derive(Clone, Copy, Debug)]
