@@ -8,6 +8,7 @@ description = "An automatic alternating tile layout for Sway."
 
 [dependencies]
 anyhow = "1.0.98"
+ctrlc = { version = "3.4.7", features = ["termination"] }
 swayipc = "3.0.3"
 thiserror = "2.0.12"
 

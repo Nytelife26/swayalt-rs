@@ -1,6 +1,14 @@
-use std::fmt::{self, Display};
+use std::{
+	fmt::{self, Display},
+	sync::{
+		Arc,
+		atomic::{AtomicBool, Ordering},
+	},
+};
 
-use swayipc::{Connection, Event, EventType, Floating, Rect, WindowChange};
+use swayipc::{
+	Connection, Event, EventType, Fallible, Floating, Rect, WindowChange,
+};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(u8)]
@@ -18,14 +26,10 @@ impl From<Rect> for Split {
 
 impl Display for Split {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(
-			f,
-			"{}",
-			match self {
-				Split::H => "splith",
-				Split::V => "splitv",
-			}
-		)
+		write!(f, "{}", match self {
+			Split::H => "splith",
+			Split::V => "splitv",
+		})
 	}
 }
 
@@ -39,24 +43,40 @@ pub fn try_set_split(
 	conn: &mut Connection,
 	id: i64,
 	split: Split,
-) -> Result<Vec<Result<(), swayipc::Error>>, swayipc::Error> {
+) -> Fallible<Vec<Fallible<()>>> {
 	conn.run_command(format!("[con_id=\"{id}\"] {split}"))
 }
 
 fn main() -> anyhow::Result<()> {
+	let running = Arc::new(AtomicBool::from(true));
+	let r = running.clone();
+	ctrlc::set_handler(move || {
+		r.store(false, Ordering::Relaxed);
+	})?;
+
 	let mut conn = Connection::new()?;
 	let mut events = Connection::new()?.subscribe([EventType::Window])?;
-	while let Some(Ok(Event::Window(window))) = events.next() {
-		let focused_node = window.container;
-		if window.change == WindowChange::Focus
-			&& is_tiling(focused_node.floating)
+	let mut prev_closed = false;
+	while running.load(Ordering::Relaxed)
+		&& let Some(Ok(Event::Window(window))) = events.next()
+	{
+		if window.change != WindowChange::Focus
+			|| !is_tiling(window.container.floating)
 		{
-			try_set_split(
-				&mut conn,
-				focused_node.id,
-				focused_node.rect.into(),
-			)?;
+			prev_closed = window.change == WindowChange::Close;
+			continue;
 		}
+		// This is required to retrieve updated window geometry after a
+		// close - focus otherwise packages pre-close geometry.
+		let focused_node = if prev_closed {
+			conn.get_tree()?.find(|x| x.focused).unwrap()
+		} else {
+			window.container
+		};
+
+		try_set_split(&mut conn, focused_node.id, focused_node.rect.into())?;
 	}
+
+	conn.run_command("layout default")?;
 	Ok(())
 }
