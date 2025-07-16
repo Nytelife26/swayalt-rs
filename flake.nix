@@ -57,6 +57,18 @@
 						};
 				});
 
+		packages = forAllSystems ({pkgs}: {
+			default = (pkgs.makeRustPlatform {
+				cargo = pkgs.rustToolchain;
+				rustc = pkgs.rustToolchain;
+			}).buildRustPackage {
+				pname = "swayalt";
+				version = "0.1.0";
+				src = ./.;
+				cargoLock.lockFile = ./Cargo.lock;
+			};
+		});
+
 		devShells =
 			forAllSystems ({pkgs}: let
 					check = self.checks.${pkgs.system}.pre-commit-check;
