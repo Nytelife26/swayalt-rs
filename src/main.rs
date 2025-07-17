@@ -66,7 +66,7 @@ fn main() -> anyhow::Result<()> {
 	while running.load(Ordering::Relaxed)
 		&& let Some(Ok(Event::Window(window))) = events.next()
 	{
-		if window.change != WindowChange::Focus
+		if !matches!(window.change, WindowChange::Focus | WindowChange::Move)
 			|| !is_tiling(window.container.floating)
 		{
 			prev_closed = window.change == WindowChange::Close;
