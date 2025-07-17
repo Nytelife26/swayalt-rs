@@ -61,10 +61,12 @@ fn main() -> anyhow::Result<()> {
 	})?;
 
 	let mut conn = Connection::new()?;
-	let mut events = Connection::new()?.subscribe([EventType::Window])?;
 	let mut prev_closed = false;
-	while running.load(Ordering::Relaxed)
-		&& let Some(Ok(Event::Window(window))) = events.next()
+	for window in Connection::new()?
+		.subscribe([EventType::Window])?
+		.take_while(|_| running.load(Ordering::Relaxed))
+		.flatten()
+		.map(|x| if let Event::Window(w) = x { w } else { unreachable!() })
 	{
 		if !matches!(window.change, WindowChange::Focus | WindowChange::Move)
 			|| !is_tiling(window.container.floating)
