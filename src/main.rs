@@ -56,9 +56,7 @@ pub fn try_set_split(
 fn main() -> anyhow::Result<()> {
 	let running = Arc::new(AtomicBool::from(true));
 	let r = running.clone();
-	ctrlc::set_handler(move || {
-		r.store(false, Ordering::Relaxed);
-	})?;
+	ctrlc::set_handler(move || r.store(false, Ordering::Relaxed))?;
 
 	let mut conn = Connection::new()?;
 	let mut prev_closed = false;
