@@ -1,5 +1,7 @@
 use std::{
 	fmt::{self, Display},
+	net::Shutdown,
+	os::unix::net::UnixStream,
 	sync::{
 		Arc,
 		atomic::{AtomicBool, Ordering},
@@ -58,9 +60,11 @@ fn main() -> anyhow::Result<()> {
 	let r = running.clone();
 	ctrlc::set_handler(move || r.store(false, Ordering::Relaxed))?;
 
-	let mut conn = Connection::new()?;
+	let stream = UnixStream::from(Connection::new()?);
+	let event_stream = stream.try_clone()?;
+	let mut conn = Connection::from(stream);
 	let mut prev_closed = false;
-	for window in Connection::new()?
+	for window in Connection::from(event_stream)
 		.subscribe([EventType::Window])?
 		.take_while(|_| running.load(Ordering::Relaxed))
 		.flatten()
@@ -84,5 +88,6 @@ fn main() -> anyhow::Result<()> {
 	}
 
 	conn.run_command("layout default")?;
+	UnixStream::from(conn).shutdown(Shutdown::Both)?;
 	Ok(())
 }
