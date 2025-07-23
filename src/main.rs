@@ -66,9 +66,11 @@ fn main() -> anyhow::Result<()> {
 	let mut prev_closed = false;
 	for window in Connection::from(event_stream)
 		.subscribe([EventType::Window])?
-		.take_while(|_| running.load(Ordering::Relaxed))
+		// Here, e.is_ok() prevents Err instances from being skipped, such as
+		// when Sway closes. See JayceFayne/swayipc-rs#48.
+		.take_while(|e| running.load(Ordering::Relaxed) && e.is_ok())
 		.flatten()
-		.map(|x| if let Event::Window(w) = x { w } else { unreachable!() })
+		.map(|e| if let Event::Window(w) = e { w } else { unreachable!() })
 	{
 		if !matches!(window.change, WindowChange::Focus | WindowChange::Move)
 			|| !is_tiling(window.container.floating)
