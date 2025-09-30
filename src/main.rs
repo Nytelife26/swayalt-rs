@@ -64,6 +64,13 @@ fn main() -> anyhow::Result<()> {
 	let event_stream = stream.try_clone()?;
 	let mut conn = Connection::from(stream);
 	let mut prev_closed = false;
+
+	let workspace_default_splits = conn
+		.get_workspaces()?
+		.into_iter()
+		.map(|w| (w.num, w.layout))
+		.collect::<Vec<_>>();
+
 	for window in Connection::from(event_stream)
 		.subscribe([EventType::Window])?
 		// Here, e.is_ok() prevents Err instances from being skipped, such as
@@ -90,7 +97,10 @@ fn main() -> anyhow::Result<()> {
 		try_set_split(&mut conn, focused_node.id, focused_node.rect.into())?;
 	}
 
-	conn.run_command("layout default")?;
+	for (workspace, layout) in workspace_default_splits {
+		conn.run_command(format!("[workspace=\"{workspace}\"] {layout}"))?;
+	}
+
 	UnixStream::from(conn).shutdown(Shutdown::Both)?;
 	Ok(())
 }
