@@ -71,6 +71,7 @@ fn main() -> anyhow::Result<()> {
 		.take_while(|e| running.load(Ordering::Relaxed) && e.is_ok())
 		.flatten()
 		.map(|e| if let Event::Window(w) = e { w } else { unreachable!() })
+		.filter(|w| w.container.visible == Some(true))
 	{
 		if !matches!(window.change, WindowChange::Focus | WindowChange::Move)
 			|| !is_tiling(window.container.floating)
