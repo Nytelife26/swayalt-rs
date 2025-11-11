@@ -33,7 +33,7 @@
 	in {
 		overlays.default = final: prev: {
 			rustToolchain = with fenix.packages.${prev.stdenv.hostPlatform.system};
-				combine (with stable; [clippy rustc cargo rustfmt rust-src]);
+				combine (with complete; [clippy rustc cargo rustfmt rust-src]);
 		};
 
 		checks =
@@ -57,17 +57,20 @@
 						};
 				});
 
-		packages = forAllSystems ({pkgs}: {
-			default = (pkgs.makeRustPlatform {
-				cargo = pkgs.rustToolchain;
-				rustc = pkgs.rustToolchain;
-			}).buildRustPackage {
-				pname = "swayalt";
-				version = "0.1.0";
-				src = ./.;
-				cargoLock.lockFile = ./Cargo.lock;
-			};
-		});
+		packages =
+			forAllSystems ({pkgs}: {
+					default =
+						(pkgs.makeRustPlatform {
+								cargo = pkgs.rustToolchain;
+								rustc = pkgs.rustToolchain;
+							}).buildRustPackage {
+							pname = "swayalt";
+							version = "0.1.0";
+							src = ./.;
+							meta.mainProgram = "swayalt";
+							cargoLock.lockFile = ./Cargo.lock;
+						};
+				});
 
 		devShells =
 			forAllSystems ({pkgs}: let
