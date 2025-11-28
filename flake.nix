@@ -2,7 +2,7 @@
 	description = "Alternating tiling layout for Sway, in Rust.";
 
 	inputs = {
-		nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+		nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 		hooks = {
 			url = "github:cachix/git-hooks.nix";
 			inputs.nixpkgs.follows = "nixpkgs";
@@ -29,6 +29,8 @@
 								inherit system;
 								overlays = [self.overlays.default];
 							};
+						inherit system;
+						check = self.checks.${system}.pre-commit-check;
 					});
 	in {
 		overlays.default = final: prev: {
@@ -37,16 +39,18 @@
 		};
 
 		checks =
-			forAllSystems ({pkgs}: {
+			forAllSystems ({
+					pkgs,
+					system,
+					...
+				}: {
 					pre-commit-check =
-						hooks.lib.${pkgs.system}.run {
+						hooks.lib.${system}.run {
 							src = ./.;
+							package = pkgs.prek;
 							hooks = {
 								convco.enable = true;
-								alejandra = {
-									enable = true;
-									package = pkgs.alejandra;
-								};
+								alejandra.enable = true;
 								statix = {
 									enable = true;
 									settings.ignore = ["/.direnv"];
@@ -58,7 +62,7 @@
 				});
 
 		packages =
-			forAllSystems ({pkgs}: {
+			forAllSystems ({pkgs, ...}: {
 					default =
 						(pkgs.makeRustPlatform {
 								cargo = pkgs.rustToolchain;
@@ -73,9 +77,12 @@
 				});
 
 		devShells =
-			forAllSystems ({pkgs}: let
-					check = self.checks.${pkgs.system}.pre-commit-check;
-				in {
+			forAllSystems ({
+					pkgs,
+					system,
+					check,
+					...
+				}: {
 					default =
 						pkgs.mkShell {
 							inherit (check) shellHook;
